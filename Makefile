@@ -1,4 +1,4 @@
 
 bases:
-	make -C base-images/ all
+	make -C base-templates/ all
 
