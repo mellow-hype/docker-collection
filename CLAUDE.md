@@ -8,7 +8,16 @@ Docker container template and build system for creating standardized base images
 
 ## Build Commands
 
-All kernel builder images are built via Make from `builders/kbuilders/`:
+Base template images are built via Make from `base-templates/`:
+
+```bash
+# Build base template images
+make -C base-templates all       # all base images
+make -C base-templates ubuntu    # Ubuntu only
+make -C base-templates debian    # Debian only
+```
+
+Kernel builder images are built via Make from `builders/kbuilders/`:
 
 ```bash
 # Build everything (base images + generic + cross-architecture builders)
@@ -47,12 +56,12 @@ docker-compose exec claude-code bash
 
 ```
 Base OS (Ubuntu/Debian)
-  → base-templates/         Minimal images: non-root user, locale, basic tools
-    → builders/kbuilders/base/   Heavy build toolchains (gcc, cmake, etc.)
-      → builders/kbuilders/      Architecture-specific builders (generic, arm, arm64)
+  → base-templates/              Minimal images: non-root user, locale, basic tools
+  → builders/kbuilders/base/     Heavy build toolchains (gcc, cmake, etc.)
+    → builders/kbuilders/        Architecture-specific builders (generic, arm, arm64, lede)
 ```
 
-Each layer builds on the previous. Base images must be built before builders (the Makefile handles this via target dependencies).
+Builder base images must be built before architecture-specific builders (the Makefile handles this via target dependencies).
 
 ### Key Directories
 
@@ -61,6 +70,7 @@ Each layer builds on the previous. Base images must be built before builders (th
 - `builders/kbuilders/base/` — Builder base images with full compilation toolchains
 - `builders/kbuilders/standalones/` — Self-contained builder images (no base dependency)
 - `tools/` — Utility containers (Claude Code, CodeQL, Kaitai, Node.js, PHP)
+- `shared/` — Reusable install scripts (Python 3.10, pwntools, pwndbg)
 - `misc/` — Specialized builders (LEDE/OpenWrt)
 
 ### Naming Conventions
@@ -69,11 +79,12 @@ Each layer builds on the previous. Base images must be built before builders (th
 - Builder bases: `{distro}_{version}-BUILDER-BASE.Dockerfile`
 - Builders: `{distro}{version}-{arch}-builder.Dockerfile` (e.g., `ubuntu20-arm64-builder.Dockerfile`)
 - Image tags follow: `{distro}{version}-kbuild-{type}` (e.g., `ubuntu24-kbuild-generic`)
+- Base template image tags: `{distro}{version}-base` (e.g., `ubuntu24-base`)
 
 ### Container Conventions
 
-- All containers create a non-root user (`builder` or `ubuntu`) with passwordless sudo
-- Locale set to UTF-8, timezone to UTC
+- All containers create a non-root user (`builder`, `ubuntu`, or `user` (Debian bases)) with passwordless sudo
+- Locale set to UTF-8, timezone to America/Los_Angeles
 - Builder containers expose volumes at `/home/builder/images` (output) and `/home/builder/src` (source)
 
 ## No Tests or CI
