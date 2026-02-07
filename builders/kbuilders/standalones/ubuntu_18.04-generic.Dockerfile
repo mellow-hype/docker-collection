@@ -10,7 +10,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gzip \
     liblzma-dev \
     liblzo2-dev \
-    liblzo2-dev \
     ocaml-nox gawk \
     lzop \
     python3 \
@@ -28,7 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	ccache ecj fastjar \
     gettext git java-propose-classpath libelf-dev libncurses5-dev \
     libncursesw5-dev libssl-dev python python2.7-dev \
-    python3-setuptools python3-dev rsync subversion \
+    python3-setuptools python3-dev subversion \
     gcc-multilib \
     pkg-config \
     wget \
@@ -40,7 +39,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# add non-root user required for buildroot
 RUN useradd -m builder &&\
     echo 'builder ALL=NOPASSWD: ALL' > /etc/sudoers.d/builder
 USER builder

@@ -39,7 +39,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libelf-dev \
     libncurses-dev \
     libssl-dev \
-    rsync \
     subversion \
     swig \
     xsltproc \
@@ -54,7 +53,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# add non-root user required for buildroot
 RUN useradd -m builder &&\
     echo 'builder ALL=NOPASSWD: ALL' > /etc/sudoers.d/builder
 USER builder

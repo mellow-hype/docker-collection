@@ -10,7 +10,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gzip \
     liblzma-dev \
     liblzo2-dev \
-    liblzo2-dev \
     ocaml-nox gawk \
     lzop \
     python-lzo \
@@ -26,7 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	ccache ecj fastjar \
     gettext git java-propose-classpath libelf-dev libncurses5-dev \
     libncursesw5-dev libssl-dev python python2.7-dev \
-    rsync subversion \
+    subversion \
     gcc-mips-linux-gnu \
     pkg-config \
     wget \
@@ -38,15 +37,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# add non-root user required for buildroot
 RUN useradd -m builder &&\
     echo 'builder ALL=NOPASSWD: ALL' > /etc/sudoers.d/builder
 USER builder
 
-# this is where images produced by buildroot will be copied for export to the host
 VOLUME [ "/home/builder/images" ]
 
-# download buildroot and copy the orbi-qemu-vexpress-a7 tree
 WORKDIR /home/builder
 
 ENTRYPOINT [ "/bin/bash" ]
