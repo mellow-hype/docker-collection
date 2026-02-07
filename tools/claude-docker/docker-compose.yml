@@ -1,0 +1,16 @@
+services:
+  claude-code:
+    build: .
+    container_name: claude-code-dev
+    stdin_open: true
+    tty: true
+    volumes:
+      # Mount your project directory here
+      # Replace ./your-project with the path to your actual project
+      - ./:/workspace
+      # Optional: Persist Claude Code configuration
+      - claude-config:/home/ubuntu/.config
+    working_dir: /workspace
+
+volumes:
+  claude-config:
