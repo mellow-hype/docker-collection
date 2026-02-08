@@ -39,6 +39,15 @@ make -C builders/kbuilders arm64_builders # ARM64 only
 sudo docker build -t <tag> -f <Dockerfile> <context-dir>
 ```
 
+Glibc toolchain builder images are built via Make from `builders/glibc-toolchains/`:
+
+```bash
+# Build glibc toolchain builder images
+make -C builders/glibc-toolchains all                # both variants
+make -C builders/glibc-toolchains glibc-builder-u20  # glibc 2.29-2.34
+make -C builders/glibc-toolchains glibc-builder-u24  # glibc 2.35+
+```
+
 Note: Make targets use `sudo docker build` — Docker access must be available.
 
 ## Claude Code Development Container
@@ -69,6 +78,7 @@ Builder base images must be built before architecture-specific builders (the Mak
 - `builders/kbuilders/` — Makefile + kernel builder Dockerfiles
 - `builders/kbuilders/base/` — Builder base images with full compilation toolchains
 - `builders/kbuilders/standalones/` — Self-contained builder images (no base dependency)
+- `builders/glibc-toolchains/` — Dockerfiles for glibc + toolchain (GCC/binutils) build environments
 - `tools/` — Utility containers (Claude Code, CodeQL, Kaitai, Node.js, PHP)
 - `shared/` — Reusable install scripts (Python 3.10, pwntools, pwndbg)
 - `misc/` — Specialized builders (LEDE/OpenWrt)
