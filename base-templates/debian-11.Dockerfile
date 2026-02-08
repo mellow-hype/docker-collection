@@ -8,8 +8,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     vim \
     python3 \
+    ca-certificates \
     tmux \
     wget \
     curl \
