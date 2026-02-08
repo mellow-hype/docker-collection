@@ -1,0 +1,230 @@
+# Docker Build Environments
+
+Standardized Docker images for kernel compilation, cross-architecture builds, exploit development, and toolchain construction across Ubuntu and Debian.
+
+## Image Hierarchy
+
+```
+Ubuntu / Debian upstream
+ └─ base-templates/                Minimal images: non-root user, locale, basic tools
+     ├─ builders/kbuilders/base/   Heavy build toolchains (gcc, cmake, flex, bison, ...)
+     │   ├─ builders/kbuilders/    Architecture-specific kernel builders (generic, ARM64, ARMhf, LEDE)
+     │   └─ builders/kbuilders/standalones/  Self-contained legacy builders (no base dependency)
+     ├─ pwn/                       Exploit-dev environments (pwndbg, pwntools, GDB)
+     └─ builders/glibc-toolchains/ Glibc + GCC/binutils toolchain builders
+```
+
+Builder base images (`kbuild-base`) must be built before the architecture-specific builders that `FROM` them. The kbuilders Makefile handles this via target dependencies.
+
+## Root Makefile Shortcuts
+
+```bash
+make bases        # Build all base-templates (Ubuntu + Debian)
+make exploit-dev  # Build bases, then all pwn/ exploit-dev images
+```
+
+## Base Templates
+
+Minimal images with a non-root user, passwordless sudo, UTF-8 locale, and basic tools (build-essential, git, curl, vim, tmux).
+
+| Distro | Tag | Dockerfile |
+|--------|-----|------------|
+| Ubuntu 20.04 | `ubuntu20-base` | `base-templates/ubuntu-20.04.Dockerfile` |
+| Ubuntu 22.04 | `ubuntu22-base` | `base-templates/ubuntu-22.04.Dockerfile` |
+| Ubuntu 24.04 | `ubuntu24-base` | `base-templates/ubuntu-24.04.Dockerfile` |
+| Debian 11 | `debian11-base` | `base-templates/debian-11.Dockerfile` |
+| Debian 12 | `debian12-base` | `base-templates/debian-12.Dockerfile` |
+| Debian 13 | `debian13-base` | `base-templates/debian-13.Dockerfile` |
+
+```bash
+make -C base-templates all       # all base images
+make -C base-templates ubuntu    # Ubuntu only (ubuntu20 ubuntu22 ubuntu24)
+make -C base-templates debian    # Debian only (debian11 debian12 debian13)
+make -C base-templates ubuntu24  # single image
+```
+
+## Kernel Builders
+
+Two-layer system: **builder bases** install the full compilation toolchain, then **architecture-specific builders** layer on top.
+
+### Builder Bases
+
+| Tag | Dockerfile |
+|-----|------------|
+| `ubuntu18-kbuild-base` | `builders/kbuilders/base/ubuntu_18.04-BUILDER-BASE.Dockerfile` |
+| `ubuntu20-kbuild-base` | `builders/kbuilders/base/ubuntu_20.04-BUILDER-BASE.Dockerfile` |
+| `ubuntu22-kbuild-base` | `builders/kbuilders/base/ubuntu_22.04-BUILDER-BASE.Dockerfile` |
+| `ubuntu24-kbuild-base` | `builders/kbuilders/base/ubuntu_24.04-BUILDER-BASE.Dockerfile` |
+| `debian11-kbuild-base` | `builders/kbuilders/base/debian_11-BUILDER-BASE.Dockerfile` |
+| `debian12-kbuild-base` | `builders/kbuilders/base/debian_12-BUILDER-BASE.Dockerfile` |
+| `debian13-kbuild-base` | `builders/kbuilders/base/debian_13-BUILDER-BASE.Dockerfile` |
+
+### Generic Builders
+
+| Tag | Dockerfile |
+|-----|------------|
+| `ubuntu18-kbuild-generic` | `ubuntu18-generic-builder.Dockerfile` |
+| `ubuntu20-kbuild-generic` | `ubuntu20-generic-builder.Dockerfile` |
+| `ubuntu22-kbuild-generic` | `ubuntu22-generic-builder.Dockerfile` |
+| `ubuntu24-kbuild-generic` | `ubuntu24-generic-builder.Dockerfile` |
+| `debian11-kbuild-generic` | `debian11-generic-builder.Dockerfile` |
+| `debian12-kbuild-generic` | `debian12-generic-builder.Dockerfile` |
+| `debian13-kbuild-generic` | `debian13-generic-builder.Dockerfile` |
+
+### Cross-Architecture Builders
+
+| Tag | Arch | Dockerfile |
+|-----|------|------------|
+| `ubuntu18-kbuild-arm64` | ARM64 | `ubuntu18-arm64-builder.Dockerfile` |
+| `ubuntu20-kbuild-arm64` | ARM64 | `ubuntu20-arm64-builder.Dockerfile` |
+| `ubuntu18-kbuild-armhf` | ARMhf | `ubuntu18-armhf-builder.Dockerfile` |
+| `ubuntu20-kbuild-armhf` | ARMhf | `ubuntu20-armhf-builder.Dockerfile` |
+
+### LEDE/OpenWrt Builders
+
+| Tag | Dockerfile |
+|-----|------------|
+| `ubuntu20-kbuild-lede` | `ubuntu20-kbuild-lede.Dockerfile` |
+| `ubuntu20-kbuild-lede-arm64` | `ubuntu20-kbuild-lede-arm64.Dockerfile` |
+
+### Build Commands
+
+```bash
+make -C builders/kbuilders all              # everything (bases + generic + cross)
+make -C builders/kbuilders generic_builders  # all generic builders (depends on bases)
+make -C builders/kbuilders cross             # all cross-arch (arm + arm64)
+make -C builders/kbuilders arm64_builders    # ARM64 only
+make -C builders/kbuilders arm_builders      # ARMhf only
+make -C builders/kbuilders ubuntu24_base     # single base image
+```
+
+### Standalone Legacy Builders
+
+Self-contained images in `builders/kbuilders/standalones/` that do not depend on the base layer. Covers Ubuntu 13.04 (i386), 16.04 (generic, ARM, MIPS), and 18.04 (generic, ARM, MIPS).
+
+### Volumes
+
+All kernel builder containers expose:
+
+- `/home/builder/images` — build output
+- `/home/builder/src` — kernel source
+
+## Glibc Toolchain Builders
+
+Environments for building glibc from source with matching GCC and binutils. Two variants cover the glibc version range:
+
+| Tag | Base | Glibc Range | Dockerfile |
+|-----|------|-------------|------------|
+| `ubuntu20-toolchain-builder` | Ubuntu 20.04 | 2.29 – 2.34 | `builders/glibc-toolchains/ubuntu_20.04-toolchain-builder.Dockerfile` |
+| `ubuntu24-toolchain-builder` | Ubuntu 24.04 | 2.35+ | `builders/glibc-toolchains/ubuntu_24.04-toolchain-builder.Dockerfile` |
+
+```bash
+make -C builders/glibc-toolchains all                # both variants
+make -C builders/glibc-toolchains glibc-builder-u20  # glibc 2.29-2.34
+make -C builders/glibc-toolchains glibc-builder-u24  # glibc 2.35+
+make -C builders/glibc-toolchains build-all          # build images then run build-all-glibc.sh
+make -C builders/glibc-toolchains download-sources   # download glibc source tarballs only
+```
+
+Volumes: `/home/builder/images` (output), `/home/builder/src` (source). Built toolchains are installed under `/home/builder/toolchains`.
+
+## LLVM Builder
+
+Clang 18 / LLVM 18 build environment on Ubuntu 24.04 with cmake, ninja-build, Python 3 venv, and the `libclang` Python bindings.
+
+```bash
+sudo docker build -t llvm-builder -f builders/llvm-builder.Dockerfile builders/
+```
+
+## Exploit Development
+
+GDB + pwndbg + pwntools environments for every supported distro. Each image is based on the corresponding `base-templates/` image.
+
+| Tag | Base | Dockerfile |
+|-----|------|------------|
+| `xdev-ubu20` | `ubuntu20-base` | `pwn/ubuntu20-exploitdev.Dockerfile` |
+| `xdev-ubu22` | `ubuntu22-base` | `pwn/ubuntu22-exploitdev.Dockerfile` |
+| `xdev-ubu24` | `ubuntu24-base` | `pwn/ubuntu24-exploitdev.Dockerfile` |
+| `xdev-deb11` | `debian11-base` | `pwn/debian11-exploitdev.Dockerfile` |
+| `xdev-deb12` | `debian12-base` | `pwn/debian12-exploitdev.Dockerfile` |
+| `xdev-deb13` | `debian13-base` | `pwn/debian13-exploitdev.Dockerfile` |
+
+```bash
+make -C pwn all       # all exploit-dev images (requires base-templates built first)
+make -C pwn xdev-ubu24  # single image
+# or from root:
+make exploit-dev      # builds bases then all exploit-dev images
+```
+
+Volume: `/home/<user>/src` (`ubuntu` on Ubuntu, `user` on Debian).
+
+## Tools
+
+### Claude Code (`tools/claude-docker/`)
+
+Ubuntu 24.04 container with Claude Code CLI pre-installed.
+
+```bash
+make -C tools/claude-docker build
+# or use docker-compose:
+cd tools/claude-docker && docker-compose up -d && docker-compose exec claude-code bash
+```
+
+Image tag: `claude-docker`. Mounts project to `/workspace`.
+
+### Ghidra Headless (`tools/ghidraHeadless/`)
+
+Headless Ghidra (v12.0.1) on Ubuntu 24.04 with OpenJDK 21. Entrypoint is `analyzeHeadless`.
+
+```bash
+make -C tools/ghidraHeadless build     # tag: ghidra-headless
+./tools/ghidraHeadless/run.sh /home/ubuntu/ghidra_projects MyProject -import /data/binary
+```
+
+### CodeQL (`tools/jammy-cql.Dockerfile`)
+
+Ubuntu 22.04 with CodeQL bundle (v2.17.6) and full build toolchain.
+
+```bash
+sudo docker build -t jammy-cql -f tools/jammy-cql.Dockerfile tools/
+```
+
+### Kaitai Struct (`tools/kaitai.Dockerfile`)
+
+Ubuntu 22.04 with Kaitai Struct Compiler 0.10 for binary format parsing.
+
+```bash
+sudo docker build -t kaitai -f tools/kaitai.Dockerfile tools/
+```
+
+### Node.js (`tools/node.Dockerfile`)
+
+Node 22 application container. Copies `package.json`, runs `npm install`, exposes port 9080.
+
+### PHP (`tools/php.Dockerfile`)
+
+PHP 8 + Apache. Copies `src/` to `/var/www/`.
+
+## Misc
+
+### LEDE/OpenWrt Builder (`misc/jammy-lede-builder.Dockerfile`)
+
+Ubuntu 22.04 (jammy) based OpenWrt/LEDE build environment. Requires `jammy-base` to be built first.
+
+## Shared Scripts
+
+Reusable install scripts in `shared/`:
+
+| Script | Purpose |
+|--------|---------|
+| `build_python3.10.sh` | Build Python 3.10 from source |
+| `pwntools.sh` | Install pwntools via pip |
+| `install_pwndbg.sh` | Install pwndbg GDB plugin |
+
+## Container Conventions
+
+- All containers create a non-root user (`builder`, `ubuntu`, or `user`) with passwordless sudo
+- Locale: `en_US.UTF-8`
+- Timezone: `America/Los_Angeles`
+- Builder containers expose volumes at `/home/builder/images` (output) and `/home/builder/src` (source)
+- All Makefile targets use `sudo docker build`
