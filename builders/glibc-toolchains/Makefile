@@ -11,3 +11,12 @@ glibc-builder-u20:
 glibc-builder-u24:
 	sudo docker build -t ubuntu24-$(IMAGE_POSTFIX) \
 		-f $(DOCKER_DIR)/ubuntu_24.04-toolchain-builder.Dockerfile $(DOCKER_DIR)
+
+build-all: glibc-builder-u20 glibc-builder-u24
+	$(PWD)/build-all-glibc.sh
+
+build-glibc-%: glibc-builder-u20 glibc-builder-u24
+	$(PWD)/build-all-glibc.sh $*
+
+download-sources:
+	./build-all-glibc.sh --download-only

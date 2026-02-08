@@ -58,9 +58,57 @@ Both images ship the same package set. Key categories:
 
 Kernel UAPI headers (needed by glibc) are provided by `linux-libc-dev`, a transitive dependency of `build-essential`.
 
-## Usage Example
+## Automated Builds
 
-Building glibc 2.31 with an era-appropriate toolchain:
+The `build-all-glibc.sh` script orchestrates building glibc versions 2.29–2.39 with full debug symbols. It automatically selects the correct Docker image for each version.
+
+### Quick Start
+
+```bash
+make build-all              # build Docker images + all 11 glibc versions
+make build-glibc-2.31       # build Docker images + a single version
+make download-sources       # download all source tarballs (no Docker needed)
+```
+
+### Script Usage
+
+```bash
+./build-all-glibc.sh                        # build all versions (2.29-2.39)
+./build-all-glibc.sh 2.31 2.35              # build specific versions only
+./build-all-glibc.sh --download-only        # download all tarballs without building
+./build-all-glibc.sh --download-only 2.31   # download a specific tarball only
+```
+
+The `--download-only` / `-d` flag fetches source tarballs from `ftp.gnu.org` to `cache/src/` without launching any Docker containers. Useful for pre-fetching sources before offline builds.
+
+### Debug Symbol Flags
+
+All builds use these flags for maximum debuggability:
+
+```
+CFLAGS="-g3 -O1 -gdwarf-4 -fno-omit-frame-pointer"
+```
+
+- `-g3` — maximum debug info including macro definitions
+- `-O1` — minimum optimization required (glibc refuses `-O0`)
+- `-gdwarf-4` — consistent DWARF format across GCC 9 and GCC 14
+- `-fno-omit-frame-pointer` — preserves frame pointers for stack traces
+
+### Output
+
+```
+builders/glibc-toolchains/
+  cache/src/                          # Cached source tarballs (shared across builds)
+    glibc-2.29.tar.xz ... glibc-2.39.tar.xz
+  output/                             # Packaged debug builds
+    glibc-2.29-debug.tar.xz ... glibc-2.39-debug.tar.xz
+```
+
+Each tarball extracts to a standard glibc prefix (`lib/`, `include/`, `bin/`, etc.) with full debug symbols embedded.
+
+## Manual Usage Example
+
+Building glibc 2.31 interactively with an era-appropriate toolchain:
 
 ```bash
 docker run -it --rm ubuntu20-toolchain-builder
