@@ -6,8 +6,9 @@ UBUNTU22_BASE_DOCKERFILE=$(DOCKER_BASE_DIR)/ubuntu_22.04-BUILDER-BASE.Dockerfile
 UBUNTU24_BASE_DOCKERFILE=$(DOCKER_BASE_DIR)/ubuntu_24.04-BUILDER-BASE.Dockerfile
 DEBIAN11_BASE_DOCKERFILE=$(DOCKER_BASE_DIR)/debian_11-BUILDER-BASE.Dockerfile
 DEBIAN12_BASE_DOCKERFILE=$(DOCKER_BASE_DIR)/debian_12-BUILDER-BASE.Dockerfile
+DEBIAN13_BASE_DOCKERFILE=$(DOCKER_BASE_DIR)/debian_13-BUILDER-BASE.Dockerfile
 BASE_IMAGE_POSTFIX:=kbuild-base
-BASES := ubuntu18_base ubuntu20_base ubuntu22_base ubuntu24_base debian11_base debian12_base
+BASES := ubuntu18_base ubuntu20_base ubuntu22_base ubuntu24_base debian11_base debian12_base debian13_base
 
 all: $(BASES) generic_builders cross_builders
 cross: arm_builders arm64_builders cross_builders
@@ -18,6 +19,9 @@ debian11_base:
 
 debian12_base:
 	sudo docker build -t debian12-$(BASE_IMAGE_POSTFIX) -f $(DEBIAN12_BASE_DOCKERFILE) $(DOCKER_BASE_DIR)
+
+debian13_base:
+	sudo docker build -t debian13-$(BASE_IMAGE_POSTFIX) -f $(DEBIAN13_BASE_DOCKERFILE) $(DOCKER_BASE_DIR)
 
 ubuntu18_base:
 	sudo docker build -t ubuntu18-$(BASE_IMAGE_POSTFIX) -f $(UBUNTU18_BASE_DOCKERFILE) $(DOCKER_BASE_DIR)
@@ -51,6 +55,7 @@ ubuntu_builders_generic: $(BASES)
 debian_builders_generic: $(BASES)
 	sudo docker build -t debian11-kbuild-generic -f debian11-generic-builder.Dockerfile .
 	sudo docker build -t debian12-kbuild-generic -f debian12-generic-builder.Dockerfile .
+	sudo docker build -t debian13-kbuild-generic -f debian13-generic-builder.Dockerfile .
 
 generic_builders: debian_builders_generic ubuntu_builders_generic
     $(info All done building generic kernel builder containers!)
