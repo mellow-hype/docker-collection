@@ -1,4 +1,4 @@
-FROM focal-builder-base:latest
+FROM ubuntu20-kbuild-base:latest
 
 USER root
 # install dependencies

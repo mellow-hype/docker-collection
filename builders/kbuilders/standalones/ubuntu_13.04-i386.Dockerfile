@@ -1,10 +1,15 @@
+# DEPRECATED: Ubuntu 13.04 reached EOL January 2014. Package repositories
+# are no longer available. This Dockerfile is retained for reference only
+# and will not build successfully.
 FROM i386/ubuntu:13.04
-ENV TZ=America/Los_Angeles
+ENV DEBIAN_FRONTEND=noninteractive \
+    TZ=America/Los_Angeles
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    ca-certificates \
     bzip2 \
     git-core \
     gzip \
@@ -38,7 +43,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m builder &&\
-    echo 'builder ALL=NOPASSWD: ALL' > /etc/sudoers.d/builder
+    echo 'builder ALL=NOPASSWD: ALL' > /etc/sudoers.d/builder &&\
+    chmod 0440 /etc/sudoers.d/builder
 USER builder
 
 VOLUME [ "/home/builder/images" ]
