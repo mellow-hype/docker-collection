@@ -1,11 +1,28 @@
 #!/usr/bin/env bash
 
-IMAGE="claude-docker:latest"
+IMAGE="${CLAUDE_DOCKER_IMAGE:-claude-docker:latest}"
+DOCKUSER="${CLAUDE_DOCKER_USER:-ubuntu}"
 CONF_LOCAL="$HOME/.config/claude-docker"
 
 EXTRA_MOUNTS=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        -i|--image)
+            IMAGE="$2"
+            shift 2
+            ;;
+        -i=*|--image=*)
+            IMAGE="${1#*=}"
+            shift
+            ;;
+        -u|--user)
+            DOCKUSER="$2"
+            shift 2
+            ;;
+        -u=*|--user=*)
+            DOCKUSER="${1#*=}"
+            shift
+            ;;
         -c|--config)
             CONF_LOCAL="$2"
             shift 2
@@ -26,6 +43,8 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: $(basename "$0") [OPTIONS]"
             echo ""
             echo "Options:"
+            echo "  -i, --image   Docker image to run (default: claude-docker:latest, or \$CLAUDE_DOCKER_IMAGE)"
+            echo "  -u, --user    Container username for mount paths (default: ubuntu, or \$CLAUDE_DOCKER_USER)"
             echo "  -c, --config  Local configuration directory (default: \$HOME/.config/claude-docker)"
             echo "  -v, --volume  Additional volume mount(s) passed to docker run"
             echo "  -h, --help    Show this help message"
@@ -46,13 +65,12 @@ mkdir -p "$CONF_LOCAL"
 
 # make sure the local .claude.json exists; if it didn't already then this will ensure the session
 # and settings are correctly preserved for the next run.
-touch $CONF_LOCAL/.claude.json
+touch "$CONF_LOCAL/.claude.json"
 
 echo "[+] Mounting configuration directory: $CONFDIR_CLAUDE"
 docker run \
-    -v $PWD:/workspace \
-    -v "$CONFDIR_CLAUDE":/home/ubuntu/.claude \
-    -v "$CONF_LOCAL/.claude.json":/home/ubuntu/.claude.json \
+    -v "$PWD":/workspace \
+    -v "$CONFDIR_CLAUDE":/home/"$DOCKUSER"/.claude \
+    -v "$CONF_LOCAL/.claude.json":/home/"$DOCKUSER"/.claude.json \
     "${EXTRA_MOUNTS[@]}" \
     -it "$IMAGE"
-
