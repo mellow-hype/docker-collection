@@ -2,11 +2,18 @@
 
 IMAGE="claude-docker:latest"
 CONF_LOCAL="$HOME/.config/claude-docker"
-CONFDIR_CLAUDE="$CONF_LOCAL/.claude"
 
 EXTRA_MOUNTS=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        -c|--config)
+            CONF_LOCAL="$2"
+            shift 2
+            ;;
+        -c=*|--config=*)
+            CONF_LOCAL="${1#*=}"
+            shift
+            ;;
         -v|--volume)
             EXTRA_MOUNTS+=("-v" "$2")
             shift 2
@@ -16,9 +23,10 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -h|--help)
-            echo "Usage: $(basename "$0") [-v|--volume HOST:CONTAINER[:OPTIONS]] ..."
+            echo "Usage: $(basename "$0") [OPTIONS]"
             echo ""
             echo "Options:"
+            echo "  -c, --config  Local configuration directory (default: \$HOME/.config/claude-docker)"
             echo "  -v, --volume  Additional volume mount(s) passed to docker run"
             echo "  -h, --help    Show this help message"
             exit 0
@@ -30,6 +38,8 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+CONFDIR_CLAUDE="$CONF_LOCAL/.claude"
 
 # ensure the local config dir exists (NOTE: this is separate from the hosts's real configs)
 mkdir -p "$CONF_LOCAL"
