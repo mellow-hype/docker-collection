@@ -48,6 +48,7 @@ mkdir -p "$CONF_LOCAL"
 # and settings are correctly preserved for the next run.
 touch $CONF_LOCAL/.claude.json
 
+echo "[+] Mounting configuration directory: $CONFDIR_CLAUDE"
 docker run \
     -v $PWD:/workspace \
     -v "$CONFDIR_CLAUDE":/home/ubuntu/.claude \
