@@ -5,7 +5,7 @@ BASE_IMAGE_POSTFIX:=kbuild-base
 BASES := ubuntu18_base ubuntu20_base ubuntu22_base ubuntu24_base debian11_base debian12_base debian13_base
 
 all: $(BASES) generic_builders cross_builders
-cross: arm_builders arm64_builders cross_builders
+cross: cross_builders
 
 # Base images — single Dockerfile, parameterized via --build-arg
 ubuntu18_base:
@@ -50,27 +50,71 @@ debian13_base:
 	    --build-arg EXTRA_PACKAGES="curl python3-lzo swig xsltproc" \
 	    -f $(BASE_DOCKERFILE) $(DOCKER_BASE_DIR)
 
-# cross-architecture build images
-arm64_builders: $(BASES)
-	sudo docker build -t ubuntu18-kbuild-arm64 -f ubuntu18-arm64-builder.Dockerfile .
-	sudo docker build -t ubuntu20-kbuild-arm64 -f ubuntu20-arm64-builder.Dockerfile .
+CROSS_DOCKERFILE=./kbuilder-cross.Dockerfile
 
-arm_builders: $(BASES)
-	sudo docker build -t ubuntu18-kbuild-armhf -f ubuntu18-armhf-builder.Dockerfile .
-	sudo docker build -t ubuntu20-kbuild-armhf -f ubuntu20-armhf-builder.Dockerfile .
+# Cross-architecture builders — single parameterized Dockerfile
+ubuntu18_arm64: ubuntu18_base
+	sudo docker build -t ubuntu18-kbuild-arm64 \
+	    --build-arg BASE_IMAGE=ubuntu18-kbuild-base:latest \
+	    --build-arg CROSS_PACKAGES="gcc-aarch64-linux-gnu libc6-dev-arm64-cross" \
+	    -f $(CROSS_DOCKERFILE) .
+
+ubuntu20_arm64: ubuntu20_base
+	sudo docker build -t ubuntu20-kbuild-arm64 \
+	    --build-arg BASE_IMAGE=ubuntu20-kbuild-base:latest \
+	    --build-arg CROSS_PACKAGES="gcc-aarch64-linux-gnu libc6-dev-arm64-cross" \
+	    -f $(CROSS_DOCKERFILE) .
+
+arm64_builders: ubuntu18_arm64 ubuntu20_arm64
+
+ubuntu18_armhf: ubuntu18_base
+	sudo docker build -t ubuntu18-kbuild-armhf \
+	    --build-arg BASE_IMAGE=ubuntu18-kbuild-base:latest \
+	    --build-arg CROSS_PACKAGES="gcc-arm-linux-gnueabihf" \
+	    -f $(CROSS_DOCKERFILE) .
+
+ubuntu20_armhf: ubuntu20_base
+	sudo docker build -t ubuntu20-kbuild-armhf \
+	    --build-arg BASE_IMAGE=ubuntu20-kbuild-base:latest \
+	    --build-arg CROSS_PACKAGES="gcc-arm-linux-gnueabihf libc6-dev-armhf-cross" \
+	    -f $(CROSS_DOCKERFILE) .
+
+arm_builders: ubuntu18_armhf ubuntu20_armhf
 
 cross_builders: arm64_builders arm_builders
 
-ubuntu_builders_generic: $(BASES)
-	sudo docker build -t ubuntu18-kbuild-generic -f ubuntu18-generic-builder.Dockerfile .
-	sudo docker build -t ubuntu20-kbuild-generic -f ubuntu20-generic-builder.Dockerfile .
-	sudo docker build -t ubuntu22-kbuild-generic -f ubuntu22-generic-builder.Dockerfile .
-	sudo docker build -t ubuntu24-kbuild-generic -f ubuntu24-generic-builder.Dockerfile .
+# Generic builders (docker tag aliases — base images are functionally complete)
+ubuntu18_generic: ubuntu18_base
+	sudo docker tag ubuntu18-kbuild-base ubuntu18-kbuild-generic
 
-debian_builders_generic: $(BASES)
-	sudo docker build -t debian11-kbuild-generic -f debian11-generic-builder.Dockerfile .
-	sudo docker build -t debian12-kbuild-generic -f debian12-generic-builder.Dockerfile .
-	sudo docker build -t debian13-kbuild-generic -f debian13-generic-builder.Dockerfile .
+ubuntu20_generic: ubuntu20_base
+	sudo docker tag ubuntu20-kbuild-base ubuntu20-kbuild-generic
+
+ubuntu22_generic: ubuntu22_base
+	sudo docker tag ubuntu22-kbuild-base ubuntu22-kbuild-generic
+
+ubuntu24_generic: ubuntu24_base
+	sudo docker tag ubuntu24-kbuild-base ubuntu24-kbuild-generic
+
+ubuntu_builders_generic: ubuntu18_generic ubuntu20_generic ubuntu22_generic ubuntu24_generic
+
+debian11_generic: debian11_base
+	sudo docker tag debian11-kbuild-base debian11-kbuild-generic
+
+debian12_generic: debian12_base
+	sudo docker tag debian12-kbuild-base debian12-kbuild-generic
+
+debian13_generic: debian13_base
+	sudo docker tag debian13-kbuild-base debian13-kbuild-generic
+
+debian_builders_generic: debian11_generic debian12_generic debian13_generic
 
 generic_builders: debian_builders_generic ubuntu_builders_generic
-    $(info All done building generic kernel builder containers!)
+	$(info All done building generic kernel builder containers!)
+
+# LEDE/OpenWrt convenience aliases (not included in 'all')
+lede: ubuntu20_base
+	sudo docker tag ubuntu20-kbuild-base ubuntu20-kbuild-lede
+
+lede_arm64: ubuntu20_arm64
+	sudo docker tag ubuntu20-kbuild-arm64 ubuntu20-kbuild-lede-arm64
