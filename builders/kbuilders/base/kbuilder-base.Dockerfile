@@ -1,62 +1,59 @@
-FROM ubuntu:24.04
+ARG BASE_IMAGE=ubuntu:24.04
+FROM ${BASE_IMAGE}
+
 ENV DEBIAN_FRONTEND=noninteractive \
     TZ=America/Los_Angeles \
     TERM=xterm-256color
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# install dependencies
+# Version-specific packages passed via --build-arg (e.g., "curl python3-lzo swig unrar xsltproc")
+ARG EXTRA_PACKAGES=""
+
+# Install kernel build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    ca-certificates \
     automake \
-    ocaml-nox \
+    bc \
     bison \
-    flex \
-    fakeroot \
-    ccache \
-    ecj \
-    gettext \
+    build-essential \
     bzip2 \
-    gzip \
-    unzip \
-    unrar \
-    git-core \
+    ca-certificates \
+    ccache \
+    cpio \
+    ecj \
+    fakeroot \
+    flex \
     gawk \
-    curl \
-    lzop \
-    python3 \
-    python3-lzo \
-    python3-pip \
-    python3-setuptools \
-    python3-dev \
-    squashfs-tools \
-    srecord \
-    tar \
-    perl \
-    rsync \
+    gettext \
     git \
     java-propose-classpath \
+    libelf-dev \
     liblzma-dev \
     liblzo2-dev \
-    libelf-dev \
     libncurses-dev \
     libssl-dev \
-    subversion \
-    swig \
-    xsltproc \
+    lzop \
+    ocaml-nox \
     pkg-config \
-    wget \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-setuptools \
+    rsync \
+    squashfs-tools \
+    srecord \
+    subversion \
     sudo \
     tmux \
-    cpio \
-    bc \
+    unzip \
     vim \
-    zlib1g-dev && \
+    wget \
+    zlib1g-dev \
+    ${EXTRA_PACKAGES} && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN useradd -m builder &&\
-    echo 'builder ALL=NOPASSWD: ALL' > /etc/sudoers.d/builder &&\
+RUN useradd -m builder && \
+    echo 'builder ALL=NOPASSWD: ALL' > /etc/sudoers.d/builder && \
     chmod 0440 /etc/sudoers.d/builder
 USER builder
 

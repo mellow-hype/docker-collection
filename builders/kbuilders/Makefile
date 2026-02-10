@@ -1,39 +1,54 @@
 
 DOCKER_BASE_DIR:=./base
-UBUNTU18_BASE_DOCKERFILE=$(DOCKER_BASE_DIR)/ubuntu_18.04-BUILDER-BASE.Dockerfile
-UBUNTU20_BASE_DOCKERFILE=$(DOCKER_BASE_DIR)/ubuntu_20.04-BUILDER-BASE.Dockerfile
-UBUNTU22_BASE_DOCKERFILE=$(DOCKER_BASE_DIR)/ubuntu_22.04-BUILDER-BASE.Dockerfile
-UBUNTU24_BASE_DOCKERFILE=$(DOCKER_BASE_DIR)/ubuntu_24.04-BUILDER-BASE.Dockerfile
-DEBIAN11_BASE_DOCKERFILE=$(DOCKER_BASE_DIR)/debian_11-BUILDER-BASE.Dockerfile
-DEBIAN12_BASE_DOCKERFILE=$(DOCKER_BASE_DIR)/debian_12-BUILDER-BASE.Dockerfile
-DEBIAN13_BASE_DOCKERFILE=$(DOCKER_BASE_DIR)/debian_13-BUILDER-BASE.Dockerfile
+BASE_DOCKERFILE=$(DOCKER_BASE_DIR)/kbuilder-base.Dockerfile
 BASE_IMAGE_POSTFIX:=kbuild-base
 BASES := ubuntu18_base ubuntu20_base ubuntu22_base ubuntu24_base debian11_base debian12_base debian13_base
 
 all: $(BASES) generic_builders cross_builders
 cross: arm_builders arm64_builders cross_builders
 
-# Base images
-debian11_base:
-	sudo docker build -t debian11-$(BASE_IMAGE_POSTFIX) -f $(DEBIAN11_BASE_DOCKERFILE) $(DOCKER_BASE_DIR)
-
-debian12_base:
-	sudo docker build -t debian12-$(BASE_IMAGE_POSTFIX) -f $(DEBIAN12_BASE_DOCKERFILE) $(DOCKER_BASE_DIR)
-
-debian13_base:
-	sudo docker build -t debian13-$(BASE_IMAGE_POSTFIX) -f $(DEBIAN13_BASE_DOCKERFILE) $(DOCKER_BASE_DIR)
-
+# Base images — single Dockerfile, parameterized via --build-arg
 ubuntu18_base:
-	sudo docker build -t ubuntu18-$(BASE_IMAGE_POSTFIX) -f $(UBUNTU18_BASE_DOCKERFILE) $(DOCKER_BASE_DIR)
+	sudo docker build -t ubuntu18-$(BASE_IMAGE_POSTFIX) \
+	    --build-arg BASE_IMAGE=ubuntu:18.04 \
+	    --build-arg EXTRA_PACKAGES="python python-lzo python2.7-dev" \
+	    -f $(BASE_DOCKERFILE) $(DOCKER_BASE_DIR)
 
 ubuntu20_base:
-	sudo docker build -t ubuntu20-$(BASE_IMAGE_POSTFIX) -f $(UBUNTU20_BASE_DOCKERFILE) $(DOCKER_BASE_DIR)
+	sudo docker build -t ubuntu20-$(BASE_IMAGE_POSTFIX) \
+	    --build-arg BASE_IMAGE=ubuntu:20.04 \
+	    --build-arg EXTRA_PACKAGES="curl python python2.7-dev python3-lzo swig unrar xsltproc" \
+	    -f $(BASE_DOCKERFILE) $(DOCKER_BASE_DIR)
 
 ubuntu22_base:
-	sudo docker build -t ubuntu22-$(BASE_IMAGE_POSTFIX) -f $(UBUNTU22_BASE_DOCKERFILE) $(DOCKER_BASE_DIR)
+	sudo docker build -t ubuntu22-$(BASE_IMAGE_POSTFIX) \
+	    --build-arg BASE_IMAGE=ubuntu:22.04 \
+	    --build-arg EXTRA_PACKAGES="curl python2.7-dev python3-lzo swig unrar xsltproc" \
+	    -f $(BASE_DOCKERFILE) $(DOCKER_BASE_DIR)
 
 ubuntu24_base:
-	sudo docker build -t ubuntu24-$(BASE_IMAGE_POSTFIX) -f $(UBUNTU24_BASE_DOCKERFILE) $(DOCKER_BASE_DIR)
+	sudo docker build -t ubuntu24-$(BASE_IMAGE_POSTFIX) \
+	    --build-arg BASE_IMAGE=ubuntu:24.04 \
+	    --build-arg EXTRA_PACKAGES="curl python3-lzo swig unrar xsltproc" \
+	    -f $(BASE_DOCKERFILE) $(DOCKER_BASE_DIR)
+
+debian11_base:
+	sudo docker build -t debian11-$(BASE_IMAGE_POSTFIX) \
+	    --build-arg BASE_IMAGE=debian:bullseye \
+	    --build-arg EXTRA_PACKAGES="curl python2.7-dev python3-lzo swig xsltproc" \
+	    -f $(BASE_DOCKERFILE) $(DOCKER_BASE_DIR)
+
+debian12_base:
+	sudo docker build -t debian12-$(BASE_IMAGE_POSTFIX) \
+	    --build-arg BASE_IMAGE=debian:bookworm \
+	    --build-arg EXTRA_PACKAGES="curl python3-lzo swig xsltproc" \
+	    -f $(BASE_DOCKERFILE) $(DOCKER_BASE_DIR)
+
+debian13_base:
+	sudo docker build -t debian13-$(BASE_IMAGE_POSTFIX) \
+	    --build-arg BASE_IMAGE=debian:trixie \
+	    --build-arg EXTRA_PACKAGES="curl python3-lzo swig xsltproc" \
+	    -f $(BASE_DOCKERFILE) $(DOCKER_BASE_DIR)
 
 # cross-architecture build images
 arm64_builders: $(BASES)
