@@ -8,8 +8,10 @@ Standardized Docker images for kernel compilation, cross-architecture builds, ex
 Ubuntu / Debian upstream
  └─ base-templates/                Minimal images: non-root user, locale, basic tools
      ├─ builders/kbuilders/base/   Heavy build toolchains (gcc, cmake, flex, bison, ...)
-     │   ├─ builders/kbuilders/    Architecture-specific kernel builders (generic, ARM64, ARMhf, LEDE)
-     │   └─ builders/kbuilders/standalones/  Self-contained legacy builders (no base dependency)
+     │   ├─ *-kbuild-generic       Tag aliases (generic = base, no extra Dockerfile)
+     │   ├─ *-kbuild-lede          Tag aliases (LEDE packages already in base)
+     │   ├─ kbuilder-cross.Dockerfile  Cross-arch builders (ARM64, ARMhf)
+     │   └─ builders/kbuilders/standalones/  Self-contained legacy builders
      ├─ pwn/                       Exploit-dev environments (pwndbg, pwntools, GDB)
      └─ builders/glibc-toolchains/ Glibc + GCC/binutils toolchain builders
 ```
@@ -45,57 +47,73 @@ make -C base-templates ubuntu24  # single image
 
 ## Kernel Builders
 
-Two-layer system: **builder bases** install the full compilation toolchain, then **architecture-specific builders** layer on top.
+Two-layer system: a single parameterized **base Dockerfile** (`base/kbuilder-base.Dockerfile`) installs the full compilation toolchain for each distro, then **cross-architecture builders** layer on cross-compiler packages. Generic builders and LEDE builders are `docker tag` aliases (no separate Dockerfiles).
 
 ### Builder Bases
 
-| Tag | Dockerfile |
+All base images are built from one Dockerfile parameterized via `--build-arg BASE_IMAGE` and `--build-arg EXTRA_PACKAGES`:
+
+| Tag | Base Image |
 |-----|------------|
-| `ubuntu18-kbuild-base` | `builders/kbuilders/base/ubuntu_18.04-BUILDER-BASE.Dockerfile` |
-| `ubuntu20-kbuild-base` | `builders/kbuilders/base/ubuntu_20.04-BUILDER-BASE.Dockerfile` |
-| `ubuntu22-kbuild-base` | `builders/kbuilders/base/ubuntu_22.04-BUILDER-BASE.Dockerfile` |
-| `ubuntu24-kbuild-base` | `builders/kbuilders/base/ubuntu_24.04-BUILDER-BASE.Dockerfile` |
-| `debian11-kbuild-base` | `builders/kbuilders/base/debian_11-BUILDER-BASE.Dockerfile` |
-| `debian12-kbuild-base` | `builders/kbuilders/base/debian_12-BUILDER-BASE.Dockerfile` |
-| `debian13-kbuild-base` | `builders/kbuilders/base/debian_13-BUILDER-BASE.Dockerfile` |
+| `ubuntu18-kbuild-base` | `ubuntu:18.04` |
+| `ubuntu20-kbuild-base` | `ubuntu:20.04` |
+| `ubuntu22-kbuild-base` | `ubuntu:22.04` |
+| `ubuntu24-kbuild-base` | `ubuntu:24.04` |
+| `debian11-kbuild-base` | `debian:bullseye` |
+| `debian12-kbuild-base` | `debian:bookworm` |
+| `debian13-kbuild-base` | `debian:trixie` |
+
+Dockerfile: `builders/kbuilders/base/kbuilder-base.Dockerfile`
 
 ### Generic Builders
 
-| Tag | Dockerfile |
-|-----|------------|
-| `ubuntu18-kbuild-generic` | `ubuntu18-generic-builder.Dockerfile` |
-| `ubuntu20-kbuild-generic` | `ubuntu20-generic-builder.Dockerfile` |
-| `ubuntu22-kbuild-generic` | `ubuntu22-generic-builder.Dockerfile` |
-| `ubuntu24-kbuild-generic` | `ubuntu24-generic-builder.Dockerfile` |
-| `debian11-kbuild-generic` | `debian11-generic-builder.Dockerfile` |
-| `debian12-kbuild-generic` | `debian12-generic-builder.Dockerfile` |
-| `debian13-kbuild-generic` | `debian13-generic-builder.Dockerfile` |
+Generic builders are `docker tag` aliases — the base images are functionally complete, so no separate Dockerfiles are needed. Each `*-kbuild-generic` tag points to the same image as its corresponding `*-kbuild-base`.
+
+| Tag | Alias of |
+|-----|----------|
+| `ubuntu18-kbuild-generic` | `ubuntu18-kbuild-base` |
+| `ubuntu20-kbuild-generic` | `ubuntu20-kbuild-base` |
+| `ubuntu22-kbuild-generic` | `ubuntu22-kbuild-base` |
+| `ubuntu24-kbuild-generic` | `ubuntu24-kbuild-base` |
+| `debian11-kbuild-generic` | `debian11-kbuild-base` |
+| `debian12-kbuild-generic` | `debian12-kbuild-base` |
+| `debian13-kbuild-generic` | `debian13-kbuild-base` |
 
 ### Cross-Architecture Builders
 
-| Tag | Arch | Dockerfile |
-|-----|------|------------|
-| `ubuntu18-kbuild-arm64` | ARM64 | `ubuntu18-arm64-builder.Dockerfile` |
-| `ubuntu20-kbuild-arm64` | ARM64 | `ubuntu20-arm64-builder.Dockerfile` |
-| `ubuntu18-kbuild-armhf` | ARMhf | `ubuntu18-armhf-builder.Dockerfile` |
-| `ubuntu20-kbuild-armhf` | ARMhf | `ubuntu20-armhf-builder.Dockerfile` |
+All cross-builders use a single parameterized Dockerfile (`kbuilder-cross.Dockerfile`) with `--build-arg BASE_IMAGE` and `--build-arg CROSS_PACKAGES`:
+
+| Tag | Arch | Cross Packages |
+|-----|------|----------------|
+| `ubuntu18-kbuild-arm64` | ARM64 | `gcc-aarch64-linux-gnu libc6-dev-arm64-cross` |
+| `ubuntu20-kbuild-arm64` | ARM64 | `gcc-aarch64-linux-gnu libc6-dev-arm64-cross` |
+| `ubuntu18-kbuild-armhf` | ARMhf | `gcc-arm-linux-gnueabihf` |
+| `ubuntu20-kbuild-armhf` | ARMhf | `gcc-arm-linux-gnueabihf libc6-dev-armhf-cross` |
+
+Dockerfile: `builders/kbuilders/kbuilder-cross.Dockerfile`
 
 ### LEDE/OpenWrt Builders
 
-| Tag | Dockerfile |
-|-----|------------|
-| `ubuntu20-kbuild-lede` | `ubuntu20-kbuild-lede.Dockerfile` |
-| `ubuntu20-kbuild-lede-arm64` | `ubuntu20-kbuild-lede-arm64.Dockerfile` |
+LEDE builders are `docker tag` aliases — the required packages (`swig`, `automake`, `xsltproc`) are already included in the base images. These targets are not included in `make all`.
+
+| Tag | Alias of |
+|-----|----------|
+| `ubuntu20-kbuild-lede` | `ubuntu20-kbuild-base` |
+| `ubuntu20-kbuild-lede-arm64` | `ubuntu20-kbuild-arm64` |
 
 ### Build Commands
 
 ```bash
 make -C builders/kbuilders all              # everything (bases + generic + cross)
-make -C builders/kbuilders generic_builders  # all generic builders (depends on bases)
-make -C builders/kbuilders cross             # all cross-arch (arm + arm64)
-make -C builders/kbuilders arm64_builders    # ARM64 only
-make -C builders/kbuilders arm_builders      # ARMhf only
-make -C builders/kbuilders ubuntu24_base     # single base image
+make -C builders/kbuilders ubuntu24_base    # single base image
+make -C builders/kbuilders generic_builders # all generic builders (tag aliases)
+make -C builders/kbuilders ubuntu24_generic # single generic builder
+make -C builders/kbuilders cross            # all cross-arch (arm + arm64)
+make -C builders/kbuilders arm64_builders   # ARM64 only
+make -C builders/kbuilders arm_builders     # ARMhf only
+make -C builders/kbuilders ubuntu20_arm64   # single cross-builder
+make -C builders/kbuilders lede             # LEDE alias (not in 'all')
+make -C builders/kbuilders lede_arm64       # LEDE ARM64 alias (not in 'all')
 ```
 
 ### Standalone Legacy Builders
