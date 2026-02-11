@@ -22,6 +22,8 @@ By default, configuration is stored in `$HOME/.config/claude-docker/`. This keep
 **Options:**
 
 ```
+-i, --image IMAGE  Docker image to run (default: claude-docker:latest, or $CLAUDE_DOCKER_IMAGE)
+-u, --user USER    Container username for mount paths (default: ubuntu, or $CLAUDE_DOCKER_USER)
 -c, --config DIR   Local configuration directory (default: $HOME/.config/claude-docker)
 -v, --volume MOUNT Additional volume mount(s) passed to docker run
 -h, --help         Show help message
@@ -35,12 +37,17 @@ clauded.sh --config /tmp/my-claude-config
 
 # Mount an additional directory
 clauded.sh -v /path/to/extra:/mnt/extra
+
+# Run a Debian variant image
+clauded.sh --image claude-docker-deb13 --user user
 ```
 
 The script mounts:
 - The current working directory to `/workspace`
-- `<config-dir>/.claude/` to `/home/ubuntu/.claude` (session data)
-- `<config-dir>/.claude.json` to `/home/ubuntu/.claude.json` (settings)
+- `<config-dir>/.claude/` to `/home/<user>/.claude` (session data)
+- `<config-dir>/.claude.json` to `/home/<user>/.claude.json` (settings)
+
+Where `<user>` is the container username (`ubuntu` by default, or the value passed via `--user`).
 
 ### Option 2: Using Docker Compose
 
@@ -54,7 +61,44 @@ The script mounts:
    docker-compose exec claude-code bash
    ```
 
-### Option 3: Using Docker Directly
+### Option 3: Using Make
+
+The Makefile supports building the default image and named variants with configurable base images, users, and packages.
+
+**Targets:**
+
+| Target | Description |
+|--------|-------------|
+| `make build` | Build the default `claude-docker` image (Ubuntu 24.04) |
+| `make build-<label>` | Build a variant tagged `claude-docker-<label>` |
+| `make install` | Symlink `clauded.sh` into `~/bin` |
+| `make all` | Run `build` + `install` |
+
+**Build variables** (override on the command line):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `BASE_IMAGE` | `ubuntu:24.04` | Base Docker image |
+| `DOCKUSER` | `ubuntu` | Non-root username created in the image |
+| `EXTRA_PACKAGES` | *(empty)* | Additional apt packages to install |
+
+**Examples:**
+
+```bash
+# Default build (identical to the original image)
+make build
+
+# Debian 13 variant
+make build-deb13 BASE_IMAGE=debian:13 DOCKUSER=user
+
+# Ubuntu 22.04 with extra packages
+make build-u22 BASE_IMAGE=ubuntu:22.04 EXTRA_PACKAGES="golang-go jq"
+
+# Override the default build's base image
+make build BASE_IMAGE=debian:12 DOCKUSER=user
+```
+
+### Option 4: Using Docker Directly
 
 1. **Build the image**:
    ```bash
@@ -104,6 +148,7 @@ Once inside the container:
 ```
 .
 ├── Dockerfile           # Container definition
+├── Makefile             # Build targets and variables
 ├── docker-compose.yml   # Docker Compose configuration
 ├── clauded.sh           # Convenience launcher script
 └── README.md            # This file
@@ -123,13 +168,13 @@ RUN apt-get update && apt-get install -y \
 
 ### Persist Configuration
 
-The `docker-compose.yml` includes a named volume (`claude-config`) that persists Claude Code configuration at `/home/ubuntu/.config` across container restarts. When using `clauded.sh`, configuration is persisted via bind-mounts to the config directory instead.
+The `docker-compose.yml` includes a named volume (`claude-config`) that persists Claude Code configuration across container restarts. When using `clauded.sh`, configuration is persisted via bind-mounts to the config directory instead.
 
 ## Troubleshooting
 
 ### Permission Issues
 If you have permission issues with mounted files:
-- The container runs as the `ubuntu` user (not root) with passwordless sudo
+- The container runs as a non-root user (`ubuntu` by default, or the value of `DOCKUSER`) with passwordless sudo
 - Ensure the files are readable on your host system
 - Consider adding user mapping in docker-compose.yml if UID/GID mismatches cause issues
 
@@ -139,6 +184,6 @@ If you have permission issues with mounted files:
 
 ## Notes
 
-- The container runs as the `ubuntu` user with passwordless sudo
+- The container runs as a non-root user (`ubuntu` by default) with passwordless sudo
 - All changes outside mounted volumes are lost when the container stops
 - Your project files in `/workspace` are safe as they're mounted from your host
