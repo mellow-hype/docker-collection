@@ -3,6 +3,10 @@ CTX ?= ../.
 
 all: xdev-deb11 xdev-deb12 xdev-deb13 xdev-ubu20 xdev-ubu22 xdev-ubu24
 
+# Claude Code + Vulnerability Research Environment
+claude-vred: claude-vred.Dockerfile
+	sudo docker build -t $@ -f $< $(CTX)
+
 # Exploit Development Environments
 xdev-deb11: debian11-exploitdev.Dockerfile
 	sudo docker build -t $@ -f $< $(CTX)
