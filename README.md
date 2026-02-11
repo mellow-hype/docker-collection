@@ -13,30 +13,53 @@ Ubuntu / Debian upstream
      │   ├─ kbuilder-cross.Dockerfile  Cross-arch builders (ARM64, ARMhf)
      │   └─ builders/kbuilders/standalones/  Self-contained legacy builders
      ├─ pwn/                       Exploit-dev environments (pwndbg, pwntools, GDB)
+     │   └─ claude-vred            Claude Code + vuln research (Ghidra, Semgrep, CodeQL)
+     ├─ cross-arch/                Lightweight cross-compilation toolchains
      └─ builders/glibc-toolchains/ Glibc + GCC/binutils toolchain builders
+
+tools/static-analysis/             Standalone static analysis toolbox (not based on base-templates)
 ```
 
 Builder base images (`kbuild-base`) must be built before the architecture-specific builders that `FROM` them. The kbuilders Makefile handles this via target dependencies.
 
-## Root Makefile Shortcuts
+## Root Makefile
+
+The top-level Makefile orchestrates builds across all subdirectories. Run `make list` for a full summary.
 
 ```bash
-make bases        # Build all base-templates (Ubuntu + Debian)
-make exploit-dev  # Build bases, then all pwn/ exploit-dev images
+make all              # bases + exploit-dev + cross-arch + tools
+make bases            # All base-template images (Ubuntu + Debian)
+make exploit-dev      # Build bases, then all pwn/ exploit-dev images
+make cross-arch       # Lightweight cross-arch toolchains (depends on bases)
+make aarch64-tools    # AArch64 cross-compilation toolchain only
+make tools            # claude-docker + ghidra-headless + static-analysis
+make claude-docker    # Claude Code development container
+make ghidra-headless  # Ghidra headless analysis container
+make static-analysis  # Static analysis toolbox
+make kbuilders        # All kernel builder images (base + generic + cross)
+make kbuilders-cross  # Cross-architecture kernel builders only
+make glibc-toolchains # Glibc toolchain builders (u20 + u24)
+make llvm-builder     # LLVM/Clang builder container
+make lede-builder     # LEDE/OpenWrt builder
+make claude-vred      # Claude Code + vulnerability research environment
+make list             # Show all available targets
+make clean            # Remove all known image tags
 ```
 
 ## Base Templates
 
-Minimal images with a non-root user, passwordless sudo, UTF-8 locale, and basic tools (build-essential, git, curl, vim, tmux).
+Minimal images with a non-root user, passwordless sudo, UTF-8 locale, tmux config, and basic tools (build-essential, git, curl, vim, tmux). All distros are built from a single parameterized Dockerfile (`base-templates/base.Dockerfile`) with `--build-arg BASE_IMAGE`, `USERNAME`, and `CREATE_USER`.
 
-| Distro | Tag | Dockerfile |
+| Distro | Tag | Base Image |
 |--------|-----|------------|
-| Ubuntu 20.04 | `ubuntu20-base` | `base-templates/ubuntu-20.04.Dockerfile` |
-| Ubuntu 22.04 | `ubuntu22-base` | `base-templates/ubuntu-22.04.Dockerfile` |
-| Ubuntu 24.04 | `ubuntu24-base` | `base-templates/ubuntu-24.04.Dockerfile` |
-| Debian 11 | `debian11-base` | `base-templates/debian-11.Dockerfile` |
-| Debian 12 | `debian12-base` | `base-templates/debian-12.Dockerfile` |
-| Debian 13 | `debian13-base` | `base-templates/debian-13.Dockerfile` |
+| Ubuntu 20.04 | `ubuntu20-base` | `ubuntu:20.04` |
+| Ubuntu 22.04 | `ubuntu22-base` | `ubuntu:22.04` |
+| Ubuntu 24.04 | `ubuntu24-base` | `ubuntu:24.04` |
+| Debian 11 | `debian11-base` | `debian:bullseye` |
+| Debian 12 | `debian12-base` | `debian:bookworm` |
+| Debian 13 | `debian13-base` | `debian:trixie` |
+
+Dockerfile: `base-templates/base.Dockerfile`
 
 ```bash
 make -C base-templates all       # all base images
@@ -156,25 +179,56 @@ sudo docker build -t llvm-builder -f builders/llvm-builder.Dockerfile builders/
 
 ## Exploit Development
 
-GDB + pwndbg + pwntools environments for every supported distro. Each image is based on the corresponding `base-templates/` image.
+GDB + pwndbg + pwntools environments for every supported distro, built from a single parameterized Dockerfile (`pwn/exploitdev.Dockerfile`). Each image is based on the corresponding `base-templates/` image. Build args control distro-specific behavior (`BUILD_PYTHON310` for older distros, `PEP668_WORKAROUND` for newer ones).
 
-| Tag | Base | Dockerfile |
-|-----|------|------------|
-| `xdev-ubu20` | `ubuntu20-base` | `pwn/ubuntu20-exploitdev.Dockerfile` |
-| `xdev-ubu22` | `ubuntu22-base` | `pwn/ubuntu22-exploitdev.Dockerfile` |
-| `xdev-ubu24` | `ubuntu24-base` | `pwn/ubuntu24-exploitdev.Dockerfile` |
-| `xdev-deb11` | `debian11-base` | `pwn/debian11-exploitdev.Dockerfile` |
-| `xdev-deb12` | `debian12-base` | `pwn/debian12-exploitdev.Dockerfile` |
-| `xdev-deb13` | `debian13-base` | `pwn/debian13-exploitdev.Dockerfile` |
+| Tag | Base | Username |
+|-----|------|----------|
+| `xdev-ubu20` | `ubuntu20-base` | `ubuntu` |
+| `xdev-ubu22` | `ubuntu22-base` | `ubuntu` |
+| `xdev-ubu24` | `ubuntu24-base` | `ubuntu` |
+| `xdev-deb11` | `debian11-base` | `user` |
+| `xdev-deb12` | `debian12-base` | `user` |
+| `xdev-deb13` | `debian13-base` | `user` |
+
+Dockerfile: `pwn/exploitdev.Dockerfile`
 
 ```bash
-make -C pwn all       # all exploit-dev images (requires base-templates built first)
+make -C pwn all         # all exploit-dev images (requires base-templates built first)
 make -C pwn xdev-ubu24  # single image
 # or from root:
-make exploit-dev      # builds bases then all exploit-dev images
+make exploit-dev        # builds bases then all exploit-dev images
 ```
 
 Volume: `/home/<user>/src` (`ubuntu` on Ubuntu, `user` on Debian).
+
+### Claude VRED (Vulnerability Research Environment)
+
+Claude Code CLI + full exploit-dev / static-analysis toolkit based on `claude-docker`. Includes pwndbg, pwntools, Ghidra 11.3.1, Semgrep, and CodeQL 2.20.3.
+
+```bash
+make -C pwn claude-vred   # requires claude-docker built first
+# or from root:
+make claude-vred
+```
+
+Dockerfile: `pwn/claude-vred.Dockerfile` — Image tag: `claude-vred`
+
+## Cross-Architecture Toolchains
+
+Lightweight cross-compilation toolchains based on `ubuntu24-base`. Lighter weight alternative to the full kbuilder cross-arch images.
+
+| Tag | Arch | Dockerfile |
+|-----|------|------------|
+| `aarch64-tools` | ARM64 | `cross-arch/aarch64-tools.Dockerfile` |
+
+Sets `CROSS_COMPILE=aarch64-linux-gnu-`. Includes gcc, g++, binutils, and libc for aarch64-linux-gnu targets.
+
+```bash
+make cross-arch       # all cross-arch toolchains
+make aarch64-tools    # ARM64 only
+```
+
+Volume: `/home/ubuntu/src`
 
 ## Tools
 
@@ -189,6 +243,20 @@ cd tools/claude-docker && docker-compose up -d && docker-compose exec claude-cod
 ```
 
 Image tag: `claude-docker`. Mounts project to `/workspace`.
+
+### Static Analysis (`tools/static-analysis/`)
+
+Standalone Ubuntu 24.04 container with a comprehensive static analysis and binary triage toolbox. Not based on base-templates.
+
+Includes: Semgrep, CodeQL v2.17.6, Ghidra 12.0.1 (headless), BinDiff 8 + BinExport v12, radare2, gdb, strace, ltrace, full C toolchain (gcc, clang, cmake, ninja), binary utilities (binutils, checksec, patchelf), and OpenJDK 21.
+
+```bash
+make static-analysis
+# or:
+sudo docker build -t static-analysis -f tools/static-analysis/Dockerfile tools/static-analysis/
+```
+
+Image tag: `static-analysis`. Volumes: `/home/ubuntu/workspace`, `/home/ubuntu/output`.
 
 ### Ghidra Headless (`tools/ghidraHeadless/`)
 
@@ -231,13 +299,15 @@ Ubuntu 22.04 (jammy) based OpenWrt/LEDE build environment. Requires `jammy-base`
 
 ## Shared Scripts
 
-Reusable install scripts in `shared/`:
+Reusable install scripts and config in `shared/`:
 
-| Script | Purpose |
-|--------|---------|
+| File | Purpose |
+|------|---------|
 | `build_python3.10.sh` | Build Python 3.10 from source |
 | `pwntools.sh` | Install pwntools via pip |
 | `install_pwndbg.sh` | Install pwndbg GDB plugin |
+| `install_claude_code.sh` | Install Claude Code CLI (auto-detects user) |
+| `tmux.conf` | Shared tmux config (vim-style nav, mouse support) |
 
 ## Container Conventions
 
