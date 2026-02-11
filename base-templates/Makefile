@@ -41,22 +41,22 @@ define docker_build
 endef
 
 ubuntu20:
-	$(call docker_build,ubuntu20,--build-arg BASE_IMAGE=ubuntu:20.04 --build-arg USERNAME=ubuntu --build-arg CREATE_USER=false)
+	$(call docker_build,ubuntu20,--build-arg BASE_IMAGE=ubuntu:20.04 --build-arg USERNAME=ubuntu)
 
 ubuntu22:
-	$(call docker_build,ubuntu22,--build-arg BASE_IMAGE=ubuntu:22.04 --build-arg USERNAME=ubuntu --build-arg CREATE_USER=false)
+	$(call docker_build,ubuntu22,--build-arg BASE_IMAGE=ubuntu:22.04 --build-arg USERNAME=ubuntu)
 
 ubuntu24:
-	$(call docker_build,ubuntu24,--build-arg BASE_IMAGE=ubuntu:24.04 --build-arg USERNAME=ubuntu --build-arg CREATE_USER=false)
+	$(call docker_build,ubuntu24,--build-arg BASE_IMAGE=ubuntu:24.04 --build-arg USERNAME=ubuntu)
 
 debian11:
-	$(call docker_build,debian11,--build-arg BASE_IMAGE=debian:bullseye --build-arg USERNAME=user --build-arg CREATE_USER=true)
+	$(call docker_build,debian11,--build-arg BASE_IMAGE=debian:bullseye --build-arg USERNAME=deb)
 
 debian12:
-	$(call docker_build,debian12,--build-arg BASE_IMAGE=debian:bookworm --build-arg USERNAME=user --build-arg CREATE_USER=true)
+	$(call docker_build,debian12,--build-arg BASE_IMAGE=debian:bookworm --build-arg USERNAME=deb)
 
 debian13:
-	$(call docker_build,debian13,--build-arg BASE_IMAGE=debian:trixie --build-arg USERNAME=user --build-arg CREATE_USER=true)
+	$(call docker_build,debian13,--build-arg BASE_IMAGE=debian:trixie --build-arg USERNAME=deb)
 
 clean-logs:
 	rm -rf $(LOG_DIR)

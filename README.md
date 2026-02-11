@@ -48,7 +48,7 @@ make clean            # Remove all known image tags
 
 ## Base Templates
 
-Minimal images with a non-root user, passwordless sudo, UTF-8 locale, tmux config, and basic tools (build-essential, git, curl, vim, tmux). All distros are built from a single parameterized Dockerfile (`base-templates/base.Dockerfile`) with `--build-arg BASE_IMAGE`, `USERNAME`, and `CREATE_USER`.
+Minimal images with a non-root user, passwordless sudo, UTF-8 locale, tmux config, and basic tools (build-essential, git, curl, vim, tmux). All distros are built from a single parameterized Dockerfile (`base-templates/base.Dockerfile`) with `--build-arg BASE_IMAGE` and `USERNAME`. The non-root user is created automatically if it doesn't already exist in the base image.
 
 | Distro | Tag | Base Image |
 |--------|-----|------------|
@@ -186,9 +186,9 @@ GDB + pwndbg + pwntools environments for every supported distro, built from a si
 | `xdev-ubu20` | `ubuntu20-base` | `ubuntu` |
 | `xdev-ubu22` | `ubuntu22-base` | `ubuntu` |
 | `xdev-ubu24` | `ubuntu24-base` | `ubuntu` |
-| `xdev-deb11` | `debian11-base` | `user` |
-| `xdev-deb12` | `debian12-base` | `user` |
-| `xdev-deb13` | `debian13-base` | `user` |
+| `xdev-deb11` | `debian11-base` | `deb` |
+| `xdev-deb12` | `debian12-base` | `deb` |
+| `xdev-deb13` | `debian13-base` | `deb` |
 
 Dockerfile: `pwn/exploitdev.Dockerfile`
 
@@ -199,7 +199,7 @@ make -C pwn xdev-ubu24  # single image
 make exploit-dev        # builds bases then all exploit-dev images
 ```
 
-Volume: `/home/<user>/src` (`ubuntu` on Ubuntu, `user` on Debian).
+Volume: `/home/<user>/src` (`ubuntu` on Ubuntu, `deb` on Debian).
 
 ### Claude VRED (Vulnerability Research Environment)
 
@@ -311,7 +311,7 @@ Reusable install scripts and config in `shared/`:
 
 ## Container Conventions
 
-- All containers create a non-root user (`builder`, `ubuntu`, or `user`) with passwordless sudo
+- All containers create a non-root user (`builder`, `ubuntu`, or `deb`) with passwordless sudo
 - Locale: `en_US.UTF-8`
 - Timezone: `America/Los_Angeles`
 - Builder containers expose volumes at `/home/builder/images` (output) and `/home/builder/src` (source)

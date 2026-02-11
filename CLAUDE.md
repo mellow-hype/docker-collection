@@ -93,7 +93,7 @@ Builder base images must be built before architecture-specific builders (the Mak
 
 ### Container Conventions
 
-- All containers create a non-root user (`builder`, `ubuntu`, or `user` (Debian bases)) with passwordless sudo
+- All containers create a non-root user (`builder`, `ubuntu`, or `deb` (Debian bases)) with passwordless sudo
 - Locale set to UTF-8, timezone to America/Los_Angeles
 - Builder containers expose volumes at `/home/builder/images` (output) and `/home/builder/src` (source)
 

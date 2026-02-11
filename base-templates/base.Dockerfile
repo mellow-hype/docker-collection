@@ -4,7 +4,6 @@ ARG BASE_IMAGE=ubuntu:24.04
 FROM ${BASE_IMAGE}
 
 ARG USERNAME=ubuntu
-ARG CREATE_USER=false
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TZ=America/Los_Angeles \
@@ -28,10 +27,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN sed -i '/en_US.UTF-8/s/^# //' /etc/locale.gen && locale-gen
 
-# Create user for Debian (Ubuntu already has ubuntu user)
-RUN if [ "$CREATE_USER" = "true" ]; then useradd -m -s /bin/bash -u 1000 ${USERNAME}; fi
-
-RUN echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} && chmod 0440 /etc/sudoers.d/${USERNAME}
+# Create user if it doesn't already exist (some Ubuntu images include it, some don't)
+RUN if ! id -u ${USERNAME} >/dev/null 2>&1; then \
+        useradd -m -s /bin/bash -u 1000 ${USERNAME}; \
+    fi && \
+    echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} && \
+    chmod 0440 /etc/sudoers.d/${USERNAME}
 
 COPY --chown=${USERNAME}:${USERNAME} shared/tmux.conf /home/${USERNAME}/.tmux.conf
 

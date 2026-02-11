@@ -47,13 +47,13 @@ xdev-ubu24:
 	$(call docker_build,xdev-ubu24,$(EXPLOITDEV_DOCKERFILE),--build-arg BASE_IMAGE=ubuntu24-base:latest --build-arg USERNAME=ubuntu --build-arg PEP668_WORKAROUND=true)
 
 xdev-deb11:
-	$(call docker_build,xdev-deb11,$(EXPLOITDEV_DOCKERFILE),--build-arg BASE_IMAGE=debian11-base:latest --build-arg USERNAME=user --build-arg BUILD_PYTHON310=true)
+	$(call docker_build,xdev-deb11,$(EXPLOITDEV_DOCKERFILE),--build-arg BASE_IMAGE=debian11-base:latest --build-arg USERNAME=deb --build-arg BUILD_PYTHON310=true)
 
 xdev-deb12:
-	$(call docker_build,xdev-deb12,$(EXPLOITDEV_DOCKERFILE),--build-arg BASE_IMAGE=debian12-base:latest --build-arg USERNAME=user)
+	$(call docker_build,xdev-deb12,$(EXPLOITDEV_DOCKERFILE),--build-arg BASE_IMAGE=debian12-base:latest --build-arg USERNAME=deb)
 
 xdev-deb13:
-	$(call docker_build,xdev-deb13,$(EXPLOITDEV_DOCKERFILE),--build-arg BASE_IMAGE=debian13-base:latest --build-arg USERNAME=user --build-arg PEP668_WORKAROUND=true)
+	$(call docker_build,xdev-deb13,$(EXPLOITDEV_DOCKERFILE),--build-arg BASE_IMAGE=debian13-base:latest --build-arg USERNAME=deb --build-arg PEP668_WORKAROUND=true)
 
 clean-logs:
 	rm -rf $(LOG_DIR)

@@ -66,6 +66,6 @@ USER ubuntu
 VOLUME [ "/home/ubuntu/src" ]
 WORKDIR /workspace
 
-RUN echo "export PATH=\$HOME/.local/bin:\$PATH" >> /home/ubuntu/.bashrc
+RUN echo 'export PATH=\$HOME/.local/bin:\$PATH' >> /home/ubuntu/.bashrc
 
 ENTRYPOINT [ "/bin/bash" ]
